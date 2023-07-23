@@ -1,31 +1,26 @@
 import logging
 from telegram import Update
-import os
-
+from config import BOT_KEY
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes
+from commands import start, get_me, get_file, unknown
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
-
-# async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
-
-async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token().build()
+    application = ApplicationBuilder().token(BOT_KEY).build()
     start_handler = CommandHandler('start', start)
+    getMe_handler = CommandHandler('getme', get_me)
+    getFile_handler = CommandHandler('getfile', get_file)
     # echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo)
     unknown_handler = MessageHandler(filters.TEXT, unknown)
     application.add_handler(start_handler)
+    application.add_handler(getMe_handler)
+    application.add_handler(getFile_handler)
     # application.add_handler(echo_handler)
-    application.add_handler(unknown_handler)
+    # application.add_handler(unknown_handler)
     application.run_polling()
-
