@@ -2,9 +2,6 @@ from telegram import Update as up
 from telegram.ext import ContextTypes as context
 
 class MainCommands:
-    def __init__(self):
-        pass;
-    
     async def start(self, update: up, context: context.DEFAULT_TYPE):
         await update._bot.send_message(
             chat_id = update.effective_chat.id, 

@@ -1,14 +1,48 @@
 import os, json as js, pandas as pd, requests as rq;
 from dotenv import load_dotenv;
-from models import Entertainment;
-from utils import Connection as conn;
 
 load_dotenv();
 KEY = os.environ["NOTION_SECRET"];
 
+class Connection:
+    def __init__(self, key):
+        _url = "";
+        self._baseUrl = "https://api.notion.com/v1/";
+        self._key = key;
+        self._headers = {
+            "Authorization": "Bearer " + self._key,
+            "Content-Type": "application/json",
+            "Notion-Version": "2022-06-28"
+        };
+
+    def set_url(self, url):
+        self._url = self._baseUrl + url;
+
+    def get_headers(self):
+        return self._headers;
+
+    def set_headers(self, headers):
+        self._headers = headers;
+
+    def get_key(self):
+        return self._key;
+
+    def get_connection(self, url):
+        self.set_url(url);
+        return self._url;
+
+class Entertainment:
+    def __init__(self, name, cover, status, is_streaming_now, type):
+        self.Name = name;
+        self.Cover = cover;
+        self.Status = status;
+        self.Is_streaming_now = is_streaming_now;
+        self.Type = type;
+
+
 def get_entertainment(filter = None, sort = None):
-    connection = conn(KEY);
-    url = connection.get_connection("databases/" + os.environ["ENTERTAINMENT_PAGE_NOTION"] + "/query?");
+    connection = Connection(KEY);
+    url = connection.get_connection("databases/" + os.environ["NOTION_DATABASE_ENTERTAINMENT"] + "/query?");
     print(f"The request was made to: {url}");
 
     def get_data_json(json):
