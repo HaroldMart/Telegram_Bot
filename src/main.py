@@ -3,7 +3,7 @@ from dotenv import load_dotenv;
 import logging, os;
 
 # Import the classes
-from src.commands import MainCommands
+from commands import MainCommands
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 

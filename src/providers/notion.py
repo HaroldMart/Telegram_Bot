@@ -190,11 +190,24 @@ class Database:
                 },
             }
         }
-        url = self._connection.get_connection("databases/")
-        response = self.request_data(database, url)
+        response = self.request_data(database, self._connection.get_connection("databases/"))
         print(response)
 
-# ------------ Databases Classes
+    def update_page_properties(self, page_id, properties):
+        url = self._connection.get_connection("pages/" + page_id)
+        try:
+            response = rq.patch(url = url, headers = self._connection.get_headers(), json = properties);
+            if response.status_code == 200:
+                json = response.json()
+
+                # print(js.dumps(json, indent=4))
+                return "Updated"
+            else:
+                print(response.text)
+        except Exception as e:
+            print(f"Error: {e}")
+
+# ------------ Database Classes
 class Entertainment_DB(Database):
     def __init__(self):
         super().__init__(os.environ["NOTION_DATABASE_ENTERTAINMENT"])
@@ -206,13 +219,15 @@ class Entertainment_DB(Database):
             has_more = True  # The default value from the start is True
             data = self._data
             super().print_request_url()
-            name, cover, status, type, is_streaming_now = [], [], [], [], [];
+            id, name, cover, status, type, is_streaming_now = [], [], [], [], [], [];
 
             while has_more:
                 rp = super().request_data(data)
                 data["start_cursor"] = rp["next_cursor"]
 
                 for item in rp["results"]:
+                    # ids = item["id"]
+                    id.append(item["id"])
                     name.append(item["properties"]["Name"]["title"][0]["text"]["content"])
                     cover.append(item["cover"]["external"]["url"])
                     status.append(item["properties"]["Status"]["status"]["name"])
@@ -221,9 +236,24 @@ class Entertainment_DB(Database):
                 has_more = rp["has_more"]
 
             media = pd.DataFrame(
-                {"Name": name, "Cover": cover, "Status": status, "Type": type,
+                {"ID": id, "Name": name, "Cover": cover, "Status": status, "Type": type,
                  "Is_streaming_now": is_streaming_now})
             # media.set_index("Name", inplace=True)
+
+            # super().update_page_properties(ids, {
+            #     "properties":
+            #         {
+            #             "Name": {
+            #                 "title": [
+            #                     {
+            #                         "text": {
+            #                             "content": "Boku no Hero Academia (Season 7)"
+            #                         }
+            #                     }
+            #                 ]
+            #             }
+            #         }
+            # })
 
             return media
         except Exception as e:
@@ -313,20 +343,27 @@ class Projects_DB(Database):
         except Exception as e:
             print(f"Error: {e}")
 
+
 filter_entertainment =  {
     "or": [
         {
-            "property": "Type",
-            "select": {
-                "equals": "Anime"
+            "property": "Name",
+            "title": {
+                "contains": "Boku no Hero"
             }
         },
-        {
-            "property": "Type",
-            "select": {
-                "equals": "Manga"
-            }
-        }
+        # {
+        #     "property": "Type",
+        #     "select": {
+        #         "equals": "Anime"
+        #     }
+        # },
+        # {
+        #     "property": "Type",
+        #     "select": {
+        #         "equals": "Manga"
+        #     }
+        # }
     ]
 }
 
@@ -337,7 +374,7 @@ entertainment = Entertainment_DB()
 entertainment.filter_and_sort(filter_entertainment)
 data = entertainment.get_media()
 print(data.head())
-print(data.info())
+# print(data.info())
 print(f"Cantidad de contenido en dataframe: {len(data)}")
 # entertainment.backup_database(dataframe = data, filename = "Animes")
 

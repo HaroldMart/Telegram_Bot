@@ -1,0 +1,12 @@
+services:
+  app:
+    image: telegram-bot
+    build: .
+    container_name: telegram-bot-app
+    environment:
+      - BOT_KEY = ${BOT_KEY}
+      - NOTION_SECRET = ${NOTION_SECRET}
+      - NOTION_DATABASE_BOOKS = ${NOTION_DATABASE_BOOKS}
+      - NOTION_DATABASE_ENTERTAINMENT = ${NOTION_DATABASE_ENTERTAINMENT}
+      - NOTION_DATABASE_PROJECTS = ${NOTION_DATABASE_PROJECTS}
+      - NOTION_PAGE_TRASH_DATABASES = ${NOTION_PAGE_TRASH_DATABASES}
