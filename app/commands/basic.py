@@ -11,6 +11,3 @@ class MainCommands:
         await update._bot.send_message(
             chat_id = update.effective_chat.id,
             text = "Sorry, I don't undestand what the fuck you're saying, please repeat xd");
-        
-class Math:
-    pass;

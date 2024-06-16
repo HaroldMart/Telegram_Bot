@@ -1,19 +1,11 @@
 from telegram.ext import ApplicationBuilder as application, CommandHandler as command;
-from dotenv import load_dotenv;
-import logging, os;
+from .commands.basic import MainCommands
 
-# Import the classes
-from commands import MainCommands
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
-    level=logging.INFO
-);
-
-load_dotenv();
+# Config
+from .config import BOT_KEY
 
 if __name__ == "__main__":
-    app = application().token(os.environ['BOT_KEY']).build();
+    app = application().token(BOT_KEY).build();
     
     # Adding the commands
     main_commands = MainCommands();

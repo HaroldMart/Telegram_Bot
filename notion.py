@@ -382,4 +382,3 @@ print(f"Cantidad de contenido en dataframe: {len(data)}")
 # cover = "https://somoskudasai.com/wp-content/uploads/2023/12/portada_sousou-no-frieren-37.jpg"
 # title = "My trash"
 # entertainment.create_database(parent, cover, title)
-
