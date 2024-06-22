@@ -10,6 +10,3 @@ load_dotenv();
 
 # Bot
 BOT_KEY = os.environ['BOT_KEY']
-
-# Notion
-NOTION_SECRET = os.environ["NOTION_SECRET"]

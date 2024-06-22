@@ -1,8 +1,8 @@
 from telegram.ext import ApplicationBuilder as application, CommandHandler as command;
-from .commands.basic import MainCommands
+from app.commands.basic import MainCommands
 
 # Config
-from .config import BOT_KEY
+from app.config import BOT_KEY
 
 if __name__ == "__main__":
     app = application().token(BOT_KEY).build();

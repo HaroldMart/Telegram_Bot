@@ -1,263 +1,6 @@
-import os, json as js, pandas as pd, requests as rq
-from dotenv import load_dotenv
+import requests as rq
+from app.features.shared.notion_api import Notion
 
-load_dotenv()
-
-# ------------ Models
-class Entertainment:
-    def __init__(self, name):
-        self.Name = name
-        self.Cover = ""
-        self.Status = ""
-        self.Is_streaming_now = False
-        self.Type = ""
-
-class Book:
-    def __init__(self, name):
-        self.Name = name
-        self.Cover = ""
-        self.Status = ""
-        self.Language = ""
-        self.Summary = ""
-        self.Author = ""
-
-class Project:
-    def __init__(self, name):
-        self.Name = name
-        self.Cover = ""
-        self.Tech = []
-        self.Description = ""
-
-# ------------ General CLasses
-class Connection:
-    def __init__(self):
-        self.__url = ""
-        self.__baseUrl = "https://api.notion.com/v1/"
-        self.__key = os.environ["NOTION_SECRET"]
-        self.__headers = {
-            "Authorization": "Bearer " + self.__key,
-            "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28"
-        }
-
-    def set_url(self, url):
-        self.__url = self.__baseUrl + url
-
-    def get_headers(self):
-        return self.__headers
-
-    def get_key(self):
-        return self.__key
-
-    def get_connection(self, url):
-        self.set_url(url)
-        return self.__url
-
-class Database:
-    def __init__(self, database_id):
-        self._database = database_id
-        self._connection = Connection()
-        self._url = ""
-        self.default_sort = {"property": "Name", "direction": "ascending"}
-        self._data = {
-            "sorts": []
-        }
-
-    def filter_and_sort(self, filter = None, sort = None):
-        if filter is not None:
-            self._data["filter"] = filter
-        if sort is not None and sort is list:
-            for item in sort:
-                self._data["sorts"].append(item)
-        else:
-            self._data["sorts"].append(self.default_sort)
-
-    def build_connection(self, data = None):
-        self._url = self._connection.get_connection("databases/" + self._database)
-        if data is not None:
-            self._url += data
-        return self._url
-
-    def request_data(self, data, url = None):
-        try:
-            if url is None:
-                url = self._url
-            response = rq.post(url = url, headers = self._connection.get_headers(), json = data);
-            if response.status_code == 200:
-                json = response.json()
-                return json
-            else:
-                print(response.text)
-        except Exception as e:
-            print(f"Error: {e}")
-
-    def print_request_url(self):
-        print(f"The request was made to: {self._url}")
-
-    def backup_database(self, dataframe, filename):
-        try:
-            path = os.path.dirname(__file__)
-            relative_path = "/Projects/Telegram_Bot/src/assets/"
-            full_path = os.path.join(path, relative_path)
-            dataframe.to_csv(f"{full_path}/{filename}.csv")
-        except Exception as e:
-            print(f"Error {e}")
-
-    def create_database(self, parent, cover, title):
-        # Is in progress
-        database = {
-            "parent": {
-                "type": "page_id",
-                "page_id": parent
-            },
-            "icon": {
-                "type": "emoji",
-                "emoji": "📝"
-            },
-            "cover": {
-                "type": "external",
-                "external": {
-                    "url": cover
-                }
-            },
-            "title": [
-                {
-                    "type": "text",
-                    "text": {
-                        "content": title,
-                        # "link": 'null'
-                    }
-                }
-            ],
-            "properties": {
-                "Name": {
-                    "title": {}
-                },
-                "Description": {
-                    "rich_text": {}
-                },
-                "In stock": {
-                    "checkbox": {}
-                },
-                "Food group": {
-                    "select": {
-                        "options": [
-                            {
-                                "name": "🥦Vegetable",
-                                "color": "green"
-                            },
-                            {
-                                "name": "🍎Fruit",
-                                "color": "red"
-                            },
-                            {
-                                "name": "💪Protein",
-                                "color": "yellow"
-                            }
-                        ]
-                    }
-                },
-                "Price": {
-                    "number": {
-                        "format": "dollar"
-                    }
-                },
-                "Last ordered": {
-                    "date": {}
-                },
-                "Store availability": {
-                    "type": "multi_select",
-                    "multi_select": {
-                        "options": [
-                            {
-                                "name": "Duc Loi Market",
-                                "color": "blue"
-                            },
-                            {
-                                "name": "Rainbow Grocery",
-                                "color": "gray"
-                            },
-                            {
-                                "name": "Nijiya Market",
-                                "color": "purple"
-                            },
-                            {
-                                "name": "Gus'\''s Community Market",
-                                "color": "yellow"
-                            }
-                        ]
-                    }
-                },
-            }
-        }
-        response = self.request_data(database, self._connection.get_connection("databases/"))
-        print(response)
-
-    def update_page_properties(self, page_id, properties):
-        url = self._connection.get_connection("pages/" + page_id)
-        try:
-            response = rq.patch(url = url, headers = self._connection.get_headers(), json = properties);
-            if response.status_code == 200:
-                json = response.json()
-
-                # print(js.dumps(json, indent=4))
-                return "Updated"
-            else:
-                print(response.text)
-        except Exception as e:
-            print(f"Error: {e}")
-
-# ------------ Database Classes
-class Entertainment_DB(Database):
-    def __init__(self):
-        super().__init__(os.environ["NOTION_DATABASE_ENTERTAINMENT"])
-
-    def get_media(self):
-        super().build_connection(data = "/query?")
-
-        try:
-            has_more = True  # The default value from the start is True
-            data = self._data
-            super().print_request_url()
-            id, name, cover, status, type, is_streaming_now = [], [], [], [], [], [];
-
-            while has_more:
-                rp = super().request_data(data)
-                data["start_cursor"] = rp["next_cursor"]
-
-                for item in rp["results"]:
-                    # ids = item["id"]
-                    id.append(item["id"])
-                    name.append(item["properties"]["Name"]["title"][0]["text"]["content"])
-                    cover.append(item["cover"]["external"]["url"])
-                    status.append(item["properties"]["Status"]["status"]["name"])
-                    type.append(item["properties"]["Type"]["select"]["name"])
-                    is_streaming_now.append(item["properties"]["Streaming now"]["checkbox"])
-                has_more = rp["has_more"]
-
-            media = pd.DataFrame(
-                {"ID": id, "Name": name, "Cover": cover, "Status": status, "Type": type,
-                 "Is_streaming_now": is_streaming_now})
-            # media.set_index("Name", inplace=True)
-
-            # super().update_page_properties(ids, {
-            #     "properties":
-            #         {
-            #             "Name": {
-            #                 "title": [
-            #                     {
-            #                         "text": {
-            #                             "content": "Boku no Hero Academia (Season 7)"
-            #                         }
-            #                     }
-            #                 ]
-            #             }
-            #         }
-            # })
-
-            return media
-        except Exception as e:
-            print(f"Error: {e}")
 
 class Books_DB(Database):
     def __init__(self):
@@ -344,41 +87,143 @@ class Projects_DB(Database):
             print(f"Error: {e}")
 
 
-filter_entertainment =  {
-    "or": [
-        {
-            "property": "Name",
-            "title": {
-                "contains": "Boku no Hero"
+def create_database(self, parent, cover, title):
+        # Is in progress
+        database = {
+            "parent": {
+                "type": "page_id",
+                "page_id": parent
+            },
+            "icon": {
+                "type": "emoji",
+                "emoji": "📝"
+            },
+            "cover": {
+                "type": "external",
+                "external": {
+                    "url": cover
+                }
+            },
+            "title": [
+                {
+                    "type": "text",
+                    "text": {
+                        "content": title,
+                        # "link": 'null'
+                    }
+                }
+            ],
+            "properties": {
+                "Name": {
+                    "title": {}
+                },
+                "Description": {
+                    "rich_text": {}
+                },
+                "In stock": {
+                    "checkbox": {}
+                },
+                "Food group": {
+                    "select": {
+                        "options": [
+                            {
+                                "name": "🥦Vegetable",
+                                "color": "green"
+                            },
+                            {
+                                "name": "🍎Fruit",
+                                "color": "red"
+                            },
+                            {
+                                "name": "💪Protein",
+                                "color": "yellow"
+                            }
+                        ]
+                    }
+                },
+                "Price": {
+                    "number": {
+                        "format": "dollar"
+                    }
+                },
+                "Last ordered": {
+                    "date": {}
+                },
+                "Store availability": {
+                    "type": "multi_select",
+                    "multi_select": {
+                        "options": [
+                            {
+                                "name": "Duc Loi Market",
+                                "color": "blue"
+                            },
+                            {
+                                "name": "Rainbow Grocery",
+                                "color": "gray"
+                            },
+                            {
+                                "name": "Nijiya Market",
+                                "color": "purple"
+                            },
+                            {
+                                "name": "Gus'\''s Community Market",
+                                "color": "yellow"
+                            }
+                        ]
+                    }
+                }
             }
-        },
-        # {
-        #     "property": "Type",
-        #     "select": {
-        #         "equals": "Anime"
-        #     }
-        # },
-        # {
-        #     "property": "Type",
-        #     "select": {
-        #         "equals": "Manga"
-        #     }
-        # }
-    ]
-}
+        }
 
-# jsons = json.dumps(media, indent=4);
-# print(jsons);
+        response = self.request_data(database, self._connection.get_connection("databases/"))
+        print(response)
 
-entertainment = Entertainment_DB()
-entertainment.filter_and_sort(filter_entertainment)
-data = entertainment.get_media()
-print(data.head())
+
+
+
+
+
+
+
+
+
+
+
+
+            #     for item in rp["results"]:
+            #         # ids = item["id"]
+            #         id.append(item["id"])
+            #         name.append(item["properties"]["Name"]["title"][0]["text"]["content"])
+            #         cover.append(item["cover"]["external"]["url"])
+            #         status.append(item["properties"]["Status"]["status"]["name"])
+            #         type.append(item["properties"]["Type"]["select"]["name"])
+            #         is_streaming_now.append(item["properties"]["Streaming now"]["checkbox"])
+            #     has_more = rp["has_more"]
+
+            # media = pd.DataFrame(
+            #     {"ID": id, "Name": name, "Cover": cover, "Status": status, "Type": type,
+            #      "Is_streaming_now": is_streaming_now})\
+                 
+
+      # media.set_index("Name", inplace=True)
+
+            # super().update_page_properties(ids, {
+            #     "properties":
+            #         {
+            #             "Name": {
+            #                 "title": [
+            #                     {
+            #                         "text": {
+            #                             "content": "Boku no Hero Academia (Season 7)"
+            #                         }
+            #                     }
+            #                 ]
+            #             }
+            #         }
+            # })
+
+
+# print(data.head())
 # print(data.info())
-print(f"Cantidad de contenido en dataframe: {len(data)}")
+# print(f"Cantidad de contenido en dataframe: {len(data)}")
 # entertainment.backup_database(dataframe = data, filename = "Animes")
-
-# parent = os.environ["NOTION_PAGE_TRASH_DATABASES"]
-# cover = "https://somoskudasai.com/wp-content/uploads/2023/12/portada_sousou-no-frieren-37.jpg"
-# title = "My trash"
-# entertainment.create_database(parent, cover, title)
